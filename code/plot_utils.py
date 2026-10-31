@@ -42,8 +42,26 @@ INDEX_MARKERS = {
 }
 
 
-def log_result_to_csv(row_dict: dict, csv_path: str = "results/results.csv"):
+def get_results_dir():
+    """Detects whether script is running inside code/ or from workspace root."""
+    if os.path.isdir("../results") or os.path.exists("../hypothesis.md"):
+        os.makedirs("../results", exist_ok=True)
+        return "../results"
+    os.makedirs("results", exist_ok=True)
+    return "results"
+
+
+def get_figures_dir():
+    """Returns figures directory, ensuring it exists."""
+    fig_dir = os.path.join(get_results_dir(), "figures")
+    os.makedirs(fig_dir, exist_ok=True)
+    return fig_dir
+
+
+def log_result_to_csv(row_dict: dict, csv_path: str = None):
     """Appends a benchmark execution row to results.csv."""
+    if csv_path is None:
+        csv_path = os.path.join(get_results_dir(), "results.csv")
     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
     file_exists = os.path.exists(csv_path)
 

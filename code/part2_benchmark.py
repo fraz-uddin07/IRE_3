@@ -21,7 +21,7 @@ from tabulate import tabulate
 
 from data_loader import load_dataset
 from metrics import compute_recall_at_k
-from plot_utils import log_result_to_csv, plot_tradeoff_curve, compute_pareto_frontier
+from plot_utils import log_result_to_csv, plot_tradeoff_curve, compute_pareto_frontier, get_figures_dir
 
 
 def measure_single_query_search(index, queries, num_trials=3):
@@ -294,7 +294,7 @@ def run_part2_for_dataset(dataset_name: str, quick: bool = False):
     # ---------------------------------------------------------
     # Plots and Summary Tables
     # ---------------------------------------------------------
-    plot_path = f"results/figures/part2_{'sift' if 'sift' in dataset_name else 'glove'}_tradeoff.png"
+    plot_path = os.path.join(get_figures_dir(), f"part2_{'sift' if 'sift' in dataset_name else 'glove'}_tradeoff.png")
     plot_tradeoff_curve(
         results_by_index=results_by_index,
         exact_qps=exact_qps,

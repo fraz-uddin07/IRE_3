@@ -16,6 +16,7 @@ Outputs:
 - Benchmark entries appended to results/results.csv
 """
 
+import os
 import time
 import argparse
 import numpy as np
@@ -24,7 +25,7 @@ from tabulate import tabulate
 
 from data_generator import generate_hypersphere_dataset
 from metrics import compute_recall_at_k
-from plot_utils import log_result_to_csv, plot_part4_geometry
+from plot_utils import log_result_to_csv, plot_part4_geometry, get_figures_dir
 from part2_benchmark import measure_single_query_search, get_index_size_bytes
 
 
@@ -168,7 +169,7 @@ def run_part4(quick: bool = False):
         ])
 
     # Plot Part 4 geometry
-    plot_part4_geometry(geometry_summary, "results/figures/part4_geometry.png")
+    plot_part4_geometry(geometry_summary, os.path.join(get_figures_dir(), "part4_geometry.png"))
 
     print("\n" + "=" * 75)
     print("PART 4 HARD GEOMETRY EXPERIMENT SUMMARY")

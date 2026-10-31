@@ -10,6 +10,7 @@ Part 3: Scaling Experiment on SIFT
 - Assesses empirical support for the pre-committed hypothesis in hypothesis.md.
 """
 
+import os
 import time
 import argparse
 import numpy as np
@@ -18,7 +19,7 @@ from tabulate import tabulate
 
 from data_loader import load_dataset
 from metrics import compute_recall_at_k
-from plot_utils import log_result_to_csv, plot_part3_scaling
+from plot_utils import log_result_to_csv, plot_part3_scaling, get_figures_dir
 from part2_benchmark import measure_single_query_search, get_index_size_bytes
 
 
@@ -227,7 +228,7 @@ def run_part3(quick: bool = False):
         table_rows.append([N, f"HNSW (ef={selected_ef})", f"{best_hnsw_rec:.4f}", f"{best_hnsw_qps:.1f}", f"{best_hnsw_lat:.2f} ms", f"{hnsw_build_time:.2f} s", f"{hnsw_size_mb:.1f} MB"])
 
     # Plot Part 3 scaling
-    plot_part3_scaling(scaling_summary, "results/figures/part3_scaling.png")
+    plot_part3_scaling(scaling_summary, os.path.join(get_figures_dir(), "part3_scaling.png"))
 
     print("\n" + "=" * 75)
     print("PART 3 SCALING BENCHMARK SUMMARY (SIFT)")
