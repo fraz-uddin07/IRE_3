@@ -20,8 +20,8 @@ code/
 ├── part3_scaling.py        # Part 3: Dataset scaling on SIFT (100K, 300K, 1M)
 ├── data_generator.py       # Part 4: Standalone seeded synthetic hypersphere generator
 ├── part4_geometry.py       # Part 4: Hard geometry (Curse of Dimensionality) benchmark
-├── plot_utils.py           # Publication plotting utilities and CSV logger
-└── generate_report.py      # Automated 5-page publication PDF report compiler
+└── plot_utils.py           # Publication plotting utilities and CSV logger
+
 ```
 
 Associated Deliverable Folders (at repository root):
@@ -64,7 +64,7 @@ To run on Google Colab, open a notebook (CPU or GPU runtime) and run:
 
 The assignment requires one-command reproduction from inside `code/`:
 
-### Quick Reproduction (`< 15 minutes`)
+### Quick Reproduction
 Runs the full pipeline on a 100,000-vector subset with 1,000 evaluation queries:
 ```bash
 cd code
@@ -76,9 +76,8 @@ This executes:
 3. `part2_benchmark.py`: Runs sweeps for HNSW, IVF-Flat, IVF-PQ on SIFT & GloVe, generating Pareto curves.
 4. `part3_scaling.py`: Runs dataset scaling ($N \in \{25\text{K}, 50\text{K}, 100\text{K}\}$).
 5. `part4_geometry.py`: Runs synthetic hypersphere geometry tests ($d \in \{16, 64, 128, 256\}$).
-6. `generate_report.py`: Compiles `report.pdf`.
 
-### Full Benchmark (`~45 - 60 minutes`)
+### Full Benchmark
 Runs the complete benchmark on all 1,000,000 SIFT vectors, 1,183,514 GloVe vectors, and 5,000 test queries:
 ```bash
 cd code
@@ -108,8 +107,6 @@ python part3_scaling.py
 # Run Part 4 Hard Geometry Experiment
 python part4_geometry.py
 
-# Compile Final 5-Page PDF Report
-python generate_report.py
 ```
 
 ---

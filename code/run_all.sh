@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --quick)
             QUICK_FLAG="--quick"
-            MODE_NAME="QUICK SUBSET BENCHMARK (<15 min)"
+            MODE_NAME="QUICK SUBSET BENCHMARK"
             shift
             ;;
         --from-step)
@@ -80,12 +80,6 @@ if [ "$START_STEP" -le 4 ]; then
     python part4_geometry.py $QUICK_FLAG
 fi
 
-# Step 5: Generate Final PDF Report from Results and Figures
-if [ "$START_STEP" -le 5 ]; then
-    echo ""
-    echo "[Step 5/5] Compiling Part 5 Final Report (report.pdf)..."
-    python generate_report.py
-fi
 
 echo ""
 echo "======================================================================"
@@ -96,5 +90,4 @@ echo "  - results/figures/part2_sift_tradeoff.png"
 echo "  - results/figures/part2_glove_tradeoff.png"
 echo "  - results/figures/part3_scaling.png"
 echo "  - results/figures/part4_geometry.png"
-echo "  - report.pdf"
 echo "======================================================================"
