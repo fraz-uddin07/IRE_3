@@ -1,13 +1,15 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=0.8in]{geometry}
+\usepackage[margin=0.7in]{geometry}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{microtype}
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{enumitem}
+\setlist{noitemsep,topsep=2pt}
 
 \hypersetup{
     colorlinks=true,
@@ -26,8 +28,15 @@
 }
 \date{Academic Year 2026}
 
+
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{8pt plus 2pt minus 1pt}{4pt plus 1pt minus 1pt}
+\titlespacing*{\subsection}{0pt}{6pt plus 2pt minus 1pt}{3pt plus 1pt minus 1pt}
 \begin{document}
-\maketitle
+\vspace{-8mm}\maketitle\vspace{-4mm}
 
 \begin{abstract}
 Finding the stored vectors closest to a query is the core primitive of modern dense retrieval. Brute-force exact search requires $\mathcal{O}(N \cdot d)$ operations, which becomes prohibitively slow at scale. Approximate Nearest Neighbour (ANN) search algorithms trade bounded accuracy losses for substantial latency speedups. In this report, we present an empirical benchmark of three prominent index families---Hierarchical Navigable Small World (HNSW), Inverted File Flat (IVF-Flat), and Inverted File Product Quantization (IVF-PQ)---on the SIFT-1M and GloVe-100 datasets. We analyze CPU memory-hierarchy dynamics explaining sequential vs. batch performance disparities, investigate scaling trajectories up to 1M vectors, demonstrate geometric failure modes stemming from high-dimensional distance concentration, and synthesize architectural criteria for production retrieval systems under strict latency and memory constraints.
@@ -56,6 +65,7 @@ FAISS \texttt{IndexFlatL2} matched the precomputed ground truth stored in the da
 \small
 \caption{Exact Search Baseline Performance (Single Thread, Median of 3 Trials)}
 \label{tab:part1}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Dataset} & \textbf{Agreement Recall} & \textbf{Sequential QPS} & \textbf{Batch QPS} & \textbf{Seq. Latency} & \textbf{Batch Speedup} \\
@@ -63,14 +73,15 @@ FAISS \texttt{IndexFlatL2} matched the precomputed ground truth stored in the da
 SIFT-1M (128d Euclidean) & 0.999500 & 22.84 QPS & 297.23 QPS & 43.77 ms & \textbf{13.01$\times$} \\
 GloVe-100 (100d Angular / $L_2$) & 1.000000 & 23.90 QPS & 278.96 QPS & 41.84 ms & \textbf{11.67$\times$} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
-\subsection{Architectural Analysis: Why Sequential and Batch Search Differ by 13$\times$}
+\subsection{Architectural Analysis: Why Sequential and Batch Search Differ by \texorpdfstring{13$\times$}{13x}}
 As documented in Table~\ref{tab:part1}, batch execution achieves an astonishing \textbf{13.01$\times$} speedup on SIFT and \textbf{11.67$\times$} on GloVe. This divergence stems from three fundamental hardware-architectural mechanisms:
 \begin{enumerate}
     \item \textbf{BLAS Cache Tiling \& Memory Bus Bandwidth:} In batch mode, distance computation is formulated as a General Matrix-Matrix Multiplication (GEMM: $Q \cdot X^T$). High-performance BLAS libraries tile matrix sub-blocks into L1/L2/L3 CPU cache slices, amortizing data movement and reusing loaded database vectors across hundreds of queries simultaneously. Conversely, sequential 1-by-1 search executes a Matrix-Vector Product (GEMV). For every query, the entire 488 MB database must be streamed from main DRAM over the memory bus, saturating bandwidth (generating over 2.4 TB of redundant memory traffic for 5,000 queries).
-    \item \textbf{SIMD Vectorization \& Pipeline Depth:} Batch GEMM executes continuous Fused Multiply-Add (FMA) instructions across AVX-256/AVX-512 vector registers with uninterrupted pipeline unrolling. Single-query loops suffer from pipeline flushes and pointer-chasing stalls.
+    \item \textbf{SIMD Vectorization \& Pipeline Depth:} Batch GEMM runs continuous Fused Multiply-Add (FMA) instructions across AVX-256/AVX-512 vector registers with uninterrupted pipeline unrolling. Single-query loops suffer from pipeline flushes and pointer-chasing stalls.
     \item \textbf{Kernel Dispatch Overhead:} Batch mode incurs a single C++ execution boundary crossing, whereas sequential mode incurs 5,000 separate runtime dispatch transitions.
 \end{enumerate}
 
@@ -98,6 +109,7 @@ We evaluated HNSW ($M \in \{16, 32, 64\}$), IVF-Flat ($nlist \in \{512, 1024, 20
 \small
 \caption{Queries Per Second (QPS) at Target Recalls (0.90 and 0.95)}
 \label{tab:part2_qps}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Index Type} & \textbf{SIFT @ 0.90} & \textbf{SIFT @ 0.95} & \textbf{GloVe @ 0.90} & \textbf{GloVe @ 0.95} \\
@@ -106,7 +118,8 @@ HNSW & \textbf{7,527.9 QPS} & \textbf{5,435.4 QPS (238$\times$ exact)} & \textbf
 IVF-Flat & 1,213.0 QPS & 1,116.8 QPS (49$\times$ exact) & 350.0 QPS & 175.8 QPS (7.4$\times$ exact) \\
 IVF-PQ & Failed ($<0.74$ floor) & Failed ($<0.95$ floor) & Failed ($<0.53$ floor) & Failed ($<0.95$ floor) \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \begin{table}[htbp]
@@ -114,21 +127,25 @@ IVF-PQ & Failed ($<0.74$ floor) & Failed ($<0.95$ floor) & Failed ($<0.53$ floor
 \small
 \caption{Build Cost, Memory Footprint, and Bytes per Vector at Recall $\ge 0.95$ Operating Point}
 \label{tab:part2_cost}
-\begin{tabular}{lccccc}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llccccc}
 \toprule
-\textbf{Index \& Dataset} & \textbf{Achieved Recall} & \textbf{Throughput (QPS)} & \textbf{Build Time} & \textbf{Index Size} & \textbf{Bytes / Vector} \\
+\textbf{Dataset} & \textbf{Index \& Setting} & \textbf{Recall@10} & \textbf{Throughput (QPS)} & \textbf{Build Time} & \textbf{Index Size} & \textbf{Bytes / Vector} \\
 \midrule
-Exact (SIFT-1M) & 0.9995 & 22.8 QPS & 0.35 s & 488.28 MB & 512.0 B/vec \\
-HNSW ($M=16, ef=48$, SIFT) & 0.9526 & \textbf{5,435.4 QPS} & 616.81 s (10.3 m) & 625.86 MB & 656.3 B/vec \\
-IVF-Flat ($nlist=2048, np=32$, SIFT) & 0.9582 & 1,116.8 QPS & 18.82 s & 496.93 MB & 521.1 B/vec \\
-IVF-PQ ($M=32, nlist=1024$, SIFT)* & 0.7330 & 345.9 QPS & 33.91 s & \textbf{39.54 MB} & \textbf{41.5 B/vec} \\
+\textbf{SIFT-1M}
+& Exact (\texttt{IndexFlatL2}) & 0.9995 & 22.8 QPS & 0.35 s & 488.28 MB & 512.0 B/vec \\
+& HNSW ($M=16, ef=48$) & 0.9526 & \textbf{5,435.4 QPS} & 616.81 s (10.3 m) & 625.86 MB & 656.3 B/vec \\
+& IVF-Flat ($nlist=2048, np=32$) & 0.9582 & 1,116.8 QPS & 18.82 s & 496.93 MB & 521.1 B/vec \\
+& IVF-PQ ($M=32, nlist=1024$)* & 0.7330 & 345.9 QPS & 33.91 s & \textbf{39.54 MB} & \textbf{41.5 B/vec} \\
 \midrule
-Exact (GloVe-100) & 1.0000 & 23.9 QPS & 0.32 s & 451.47 MB & 400.0 B/vec \\
-HNSW ($M=64, ef=256$, GloVe) & 0.9542 & \textbf{567.8 QPS} & 1,576.19 s (26.3 m) & 1,047.51 MB & 928.1 B/vec \\
-IVF-Flat ($nlist=2048, np=256$, GloVe) & 0.9583 & 175.8 QPS & 16.50 s & 461.30 MB & 408.7 B/vec \\
-IVF-PQ ($M=20, nlist=1024$, GloVe)* & 0.5283 & 412.3 QPS & 27.80 s & \textbf{32.74 MB} & \textbf{29.0 B/vec} \\
+\textbf{GloVe-100}
+& Exact (\texttt{IndexFlatL2}) & 1.0000 & 23.9 QPS & 0.32 s & 451.47 MB & 400.0 B/vec \\
+& HNSW ($M=64, ef=256$) & 0.9542 & \textbf{567.8 QPS} & 1,576.19 s (26.3 m) & 1,047.51 MB & 928.1 B/vec \\
+& IVF-Flat ($nlist=2048, np=256$) & 0.9583 & 175.8 QPS & 16.50 s & 461.30 MB & 408.7 B/vec \\
+& IVF-PQ ($M=20, nlist=1024$)* & 0.5283 & 412.3 QPS & 27.80 s & \textbf{32.74 MB} & \textbf{29.0 B/vec} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Why Plain IVF-PQ Fails to Reach High Recall}
@@ -144,7 +161,7 @@ Even when setting $nprobe = nlist$ (scanning every inverted list), quantization 
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.88\linewidth]{results/figures/part3_scaling.png}
+\includegraphics[width=0.72\linewidth]{results/figures/part3_scaling.png}
 \caption{Part 3 Scaling: QPS at Recall $\ge 0.95$ and Build Time vs. Dataset Size $N$.}
 \label{fig:part3_scaling}
 \end{figure}
@@ -154,6 +171,7 @@ Even when setting $nprobe = nlist$ (scanning every inverted list), quantization 
 \small
 \caption{Empirical Scaling Benchmark on SIFT-1M Subsets at Recall $\ge 0.95$}
 \label{tab:part3}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Scale $N$} & \textbf{Index \& Setting} & \textbf{Achieved Recall} & \textbf{Throughput (QPS)} & \textbf{Query Latency} & \textbf{Build Time} \\
@@ -170,7 +188,8 @@ Even when setting $nprobe = nlist$ (scanning every inverted list), quantization 
 1M & IVF-Flat ($nlist=1024, nprobe=32$) & 0.9782 & 614.4 QPS & 1.63 ms & 6.54 s \\
 1M & HNSW ($M=32, efSearch=48$) & 0.9669 & \textbf{4,460.2 QPS} & \textbf{0.22 ms} & 461.55 s \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Hypothesis Outcome \& Verification}
@@ -190,7 +209,7 @@ Greedy graph routing in HNSW relies on directional metric gradients ($\text{dist
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.88\linewidth]{results/figures/part4_geometry.png}
+\includegraphics[width=0.72\linewidth]{results/figures/part4_geometry.png}
 \caption{Part 4 Geometry: Relative Contrast and Recall Collapse vs. Dimension $d$.}
 \label{fig:part4_geometry}
 \end{figure}
@@ -200,6 +219,7 @@ Greedy graph routing in HNSW relies on directional metric gradients ($\text{dist
 \small
 \caption{Empirical Geometry Degradation on Synthetic Unit Hypersphere ($N=100\text{K}$)}
 \label{tab:part4}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Dimension $d$} & \textbf{Contrast $\frac{d_{10}-d_1}{d_1}$} & \textbf{HNSW Recall} & \textbf{HNSW QPS} & \textbf{IVF Recall} & \textbf{IVF QPS} \\
@@ -209,7 +229,8 @@ $d = 64$ [Control] & 0.14159 ($-73.3\%$) & 0.5341 ($-45.6\%$) & 7,251.0 & 0.2186
 $d = 128$ & 0.08523 ($-84.0\%$) & 0.2682 & 3,996.1 & 0.1356 & 10,131.0 \\
 $d = 256$ & \textbf{0.05580} ($-89.5\%$) & \textbf{0.1383} ($-85.9\%$) & 2,254.5 & 0.0923 & 5,538.2 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Mechanism \& Scientific Findings}
